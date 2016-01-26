@@ -1,156 +1,166 @@
 # -*- coding: utf-8 -*-
-
-#### IMPORTS 1.0
-
-import os
-import re
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
 import scraperwiki
 import urllib2
 from datetime import datetime
 from bs4 import BeautifulSoup
+import csv
+import re
+import os, multiprocessing as mp
+import urllib
+import time
 
-#### FUNCTIONS 1.0
 
-def validateFilename(filename):
-    filenameregex = '^[a-zA-Z0-9]+_[a-zA-Z0-9]+_[a-zA-Z0-9]+_[0-9][0-9][0-9][0-9]_[0-9QY][0-9]$'
-    dateregex = '[0-9][0-9][0-9][0-9]_[0-9QY][0-9]'
-    validName = (re.search(filenameregex, filename) != None)
-    found = re.search(dateregex, filename)
-    if not found:
-        return False
-    date = found.group(0)
-    now = datetime.now()
-    year, month = date[:4], date[5:7]
-    validYear = (2000 <= int(year) <= now.year)
-    if 'Q' in date:
-        validMonth = (month in ['Q0', 'Q1', 'Q2', 'Q3', 'Q4'])
-    elif 'Y' in date:
-        validMonth = (month in ['Y1'])
+def connect(url):
+    report_soup = ''
+    try:
+        report_html = urllib2.urlopen(url)
+        report_soup = BeautifulSoup(report_html, 'lxml')
+    except:
+        connect(url)
+    if not report_soup:
+        connect(url)
     else:
-        try:
-            validMonth = datetime.strptime(date, "%Y_%m") < now
-        except:
-            return False
-    if all([validName, validYear, validMonth]):
-        return True
-
-
-def validateURL(url):
-    try:
-        r = urllib2.urlopen(url)
-        count = 1
-        while r.getcode() == 500 and count < 4:
-            print ("Attempt {0} - Status code: {1}. Retrying.".format(count, r.status_code))
-            count += 1
-            r = urllib2.urlopen(url)
-        sourceFilename = r.headers.get('Content-Disposition')
-
-        if sourceFilename:
-            ext = os.path.splitext(sourceFilename)[1].replace('"', '').replace(';', '').replace(' ', '')
-        else:
-            ext = os.path.splitext(url)[1]
-        validURL = r.getcode() == 200
-        validFiletype = ext.lower() in ['.csv', '.xls', '.xlsx', '.pdf']
-        return validURL, validFiletype
-    except:
-        print ("Error validating URL.")
-        return False, False
+        return report_soup
 
 
 
-def validate(filename, file_url):
-    validFilename = validateFilename(filename)
-    validURL, validFiletype = validateURL(file_url)
-    if not validFilename:
-        print filename, "*Error: Invalid filename*"
-        print file_url
-        return False
-    if not validURL:
-        print filename, "*Error: Invalid URL*"
-        print file_url
-        return False
-    if not validFiletype:
-        print filename, "*Error: Invalid filetype*"
-        print file_url
-        return False
-    return True
+def processfile(filename, lines, start=0, stop=0):
+    if start == 0 and stop == 0:
+        with open(filename, "r") as fh:
+            csv_reader = csv.reader(fh, delimiter=',')
+            selection = [row for row in reader]
+            lines = fh.readlines(stop - start)
+            # print(lines)
+            for row in lines:
+                print row.split(',')[0]
+                if 'http://' not in row[12]:
+                    continue
 
-
-def convert_mth_strings ( mth_string ):
-    month_numbers = {'JAN': '01', 'FEB': '02', 'MAR':'03', 'APR':'04', 'MAY':'05', 'JUN':'06', 'JUL':'07', 'AUG':'08', 'SEP':'09','OCT':'10','NOV':'11','DEC':'12' }
-    for k, v in month_numbers.items():
-        mth_string = mth_string.replace(k, v)
-    return mth_string
-
-#### VARIABLES 1.0
-
-entity_id = "FTRBVX_TCNHSFT_gov"
-url = "http://www.christie.nhs.uk/about-us/the-foundation-trust/about-the-trust/trust-publications-and-reports/transparency/"
-errors = 0
-data = []
-
-#### READ HTML 1.0
-
-html = urllib2.urlopen(url)
-soup = BeautifulSoup(html, 'lxml')
-
-
-#### SCRAPE DATA
-
-
-links = soup.find('div', 'cards').find_all('a')
-for link in links:
-    try:
-        if '.csv' in link['href'] or '.xls' in link['href'] or '.xlsx' in link['href'] or '.pdf' in link['href']:
-            url = 'http://www.christie.nhs.uk'+link['href']
-            title = link.text.strip()
-            csvMth = title[:3]
-            csvYr = title[-4:]
-            csvMth = convert_mth_strings(csvMth.upper())
-            data.append([csvYr, csvMth, url])
-    except:
-        break
-html = urllib2.urlopen('https://data.gov.uk/dataset/spend-over-25000-in-the-christie-nhs-foundation-trust')
-soup = BeautifulSoup(html, 'lxml')
-blocks = soup.find_all('div', 'dropdown')
-for block in blocks:
-    file_url = ''
-    try:
-        file_url = block.find('ul', 'dropdown-menu').find_all('li')[1].find('a')['href']
-    except:
-        pass
-    if '.csv' in file_url or '.xls' in file_url or '.xlsx' in file_url or '.pdf' in file_url:
-        url = file_url
-        title = block.find_previous('div', 'dataset-resource-text').text.strip()
-        csvMth = title.split()[1][:3]
-        csvYr = title.split()[2]
-        if '2015' in csvYr:
-            continue
-        csvMth = convert_mth_strings(csvMth.upper())
-        data.append([csvYr, csvMth, url])
-
-
-
-
-
-#### STORE DATA 1.0
-
-for row in data:
-    csvYr, csvMth, url = row
-    filename = entity_id + "_" + csvYr + "_" + csvMth
-    todays_date = str(datetime.now())
-    file_url = url.strip()
-
-    valid = validate(filename, file_url)
-
-    if valid == True:
-        scraperwiki.sqlite.save(unique_keys=['l'], data={"l": file_url, "f": filename, "d": todays_date })
-        print filename
+                location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk')
+                name = row[0]
+                add1 = ' '.join(row[2].split(',')[:-1])
+                add2 = row[2].split(',')[-1]
+                add3 = row[10]
+                add4 = row[11]
+                postal_code = row[3]
+                print name
     else:
-        errors += 1
+        with open(filename, "r") as fh:
+            csv_reader = csv.reader(fh, delimiter=',')
+            print start, stop, lines
+            # print csv_reader[start:stop]
+            # results = []
+            # print list(csv_reader)[start:stop]
+            # return list(csv_reader)[start:stop]
+            for row in list(csv_reader)[start:stop]:
+                if 'http://' not in row[12]:
+                    continue
+                location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk')
+                name = row[0]
+                report_soup = connect(location_url)
+                latest_report_url = location_url+'/reports'
+                latest_report_soup = connect(latest_report_url)
+                latest_report = ''
+                try:
+                    latest_report = latest_report_soup.find('h2', text=re.compile('Reports')).find_next('div').text.strip()
+                except:
+                    pass
+                reports_url = ''
+                try:
+                    reports_url = report_soup.find('div', 'overview-inner latest-report').find('li').find_next('li').find('a')['href']
+                except:
+                    pass
+                if 'pdf' not in reports_url:
+                    reports_url = ''
+                    try:
+                        reports_url = 'http://www.cqc.org.uk'+report_soup.find('a', text=re.compile('Read CQC inspection report online'))['href']
+                    except:
+                        pass
+                report_date = ''
+                try:
+                    report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
+                except:
+                    pass
+                print name, report_date
+                scraperwiki.sqlite.save(unique_keys=['name'], data={"name": name, "date": report_date })
+            # #      results.append(row)
+            #     if i == lines:
+            #         break
+            # print results
+            # return results
 
-if errors > 0:
-    raise Exception("%d errors occurred during scrape." % errors)
+            # selection = [row for row in reader[start:stop]]
+            # print selection
+            # lines = fh.readlines(stop - start)
+            # print lines
+            # p = 0
+            # for row in lines:
+            #     print row.split(',')[0]
+                # if 'http://' not in row.split(',')[12]:
+                #     continue
+                # location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk')
+                # name = row.split(',')[0]
+                # add1 = ' '.join(row[2].split(',')[:-1])
+                # add2 = row[2].split(',')[-1]
+                # add3 = row[10]
+                # add4 = row[11]
+                # postal_code = row[3]
+                # print name
+                # p+=1
+
+                # scraperwiki.sqlite.save(unique_keys=['name'], data={"name": unicode(name)})
 
 
-#### EOF
+
+
+if __name__ == "__main__":
+ with open('discount.csv', 'w') as f:
+    write = csv.writer(f)
+    directoryUrl = "http://www.cqc.org.uk/content/how-get-and-re-use-cqc-information-and-data#directory"
+    soup = connect(directoryUrl)
+    block = soup.find('div',{'id':'directory'})
+    csvA = block.find('a',href=True)
+    csvUrl = csvA['href']
+    print csvUrl
+    response = urllib.urlretrieve(csvUrl)
+    start_time = time.time()
+    filesize = os.path.getsize(response[0])
+    # print filesize
+    split_size = 4
+
+    # result = processfile(response[0])
+    # print result
+    # print filesize, split_size
+    if filesize > split_size:
+        pool = mp.Pool(4)
+        cursor = 0
+        results = []
+        with open(response[0], "r") as fh:
+             lines = len(fh.readlines())
+             size = lines/split_size
+             print size
+        #      spamreader = csv.reader(fh, delimiter=',')
+             for chunk in xrange(split_size):
+
+                 # if cursor + split_size > filesize:
+                 #     end = filesize
+                 # else:
+                 end = cursor + size
+        #
+        #          fh.seek(end)
+        #          fh.readline()
+        #          end = fh.tell()
+        #          # print cursor, end
+                 proc = pool.apply_async(processfile, args=[response[0], lines, cursor, end])
+                 results.append(proc)
+                 # for p in proc.get():
+                 #     print(p)
+                 cursor = end
+                 # print cursor
+        pool.close()
+        pool.join()
+        
+       
