@@ -178,6 +178,6 @@ if __name__ == "__main__":
         for proc in results:
             for key, val in proc.get().iteritems():
                # print name
-               # todays_date = str(datetime.now())
-               write.writerow([key, val])
-               # scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(name)})
+               todays_date = str(datetime.now())
+            #   write.writerow([key, val])
+               scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(key), "val": unicode(val)})
