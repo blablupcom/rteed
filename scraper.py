@@ -51,41 +51,51 @@ def processfile(filename, lines, start=0, stop=0):
         with open(filename, "r") as fh:
             csv_reader = csv.reader(fh, delimiter=',')
             print start, stop, lines
-            # print csv_reader[start:stop]
-            # results = []
-            # print list(csv_reader)[start:stop]
+            results = {}
+
             # return list(csv_reader)[start:stop]
             for row in list(csv_reader)[start:stop]:
-                if 'http://' not in row[12]:
+                # print row
+                if 'http' not in row[12]:
                     continue
                 location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk')
                 name = row[0]
+                # add3 = row[10]
                 report_soup = connect(location_url)
-                latest_report_url = location_url+'/reports'
-                latest_report_soup = connect(latest_report_url)
-                latest_report = ''
-                try:
-                    latest_report = latest_report_soup.find('h2', text=re.compile('Reports')).find_next('div').text.strip()
-                except:
-                    pass
-                reports_url = ''
-                try:
-                    reports_url = report_soup.find('div', 'overview-inner latest-report').find('li').find_next('li').find('a')['href']
-                except:
-                    pass
-                if 'pdf' not in reports_url:
-                    reports_url = ''
-                    try:
-                        reports_url = 'http://www.cqc.org.uk'+report_soup.find('a', text=re.compile('Read CQC inspection report online'))['href']
-                    except:
-                        pass
                 report_date = ''
                 try:
                     report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
                 except:
                     pass
-                print name, report_date
-                scraperwiki.sqlite.save(unique_keys=['name'], data={"name": name, "date": report_date })
+                print name
+                results[name]= report_date
+            return results
+                # report_soup = connect(location_url)
+                # latest_report_url = location_url+'/reports'
+                # latest_report_soup = connect(latest_report_url)
+                # latest_report = ''
+                # try:
+                #     latest_report = latest_report_soup.find('h2', text=re.compile('Reports')).find_next('div').text.strip()
+                # except:
+                #     pass
+                # reports_url = ''
+                # try:
+                #     reports_url = report_soup.find('div', 'overview-inner latest-report').find('li').find_next('li').find('a')['href']
+                # except:
+                #     pass
+                # if 'pdf' not in reports_url:
+                #     reports_url = ''
+                #     try:
+                #         reports_url = 'http://www.cqc.org.uk'+report_soup.find('a', text=re.compile('Read CQC inspection report online'))['href']
+                #     except:
+                #         pass
+                # report_date = ''
+                # try:
+                #     report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
+                # except:
+                #     pass
+                # print name
+                # scraperwiki.sqlite.save(unique_keys=['name'], data={"name": unicode(name)})
             # #      results.append(row)
             #     if i == lines:
             #         break
@@ -129,15 +139,16 @@ if __name__ == "__main__":
     start_time = time.time()
     filesize = os.path.getsize(response[0])
     # print filesize
-    split_size = 4
+    split_size = 6
 
     # result = processfile(response[0])
     # print result
     # print filesize, split_size
     if filesize > split_size:
-        pool = mp.Pool(4)
+        pool = mp.Pool(7)
         cursor = 0
         results = []
+
         with open(response[0], "r") as fh:
              lines = len(fh.readlines())
              size = lines/split_size
@@ -153,7 +164,7 @@ if __name__ == "__main__":
         #          fh.seek(end)
         #          fh.readline()
         #          end = fh.tell()
-        #          # print cursor, end
+
                  proc = pool.apply_async(processfile, args=[response[0], lines, cursor, end])
                  results.append(proc)
                  # for p in proc.get():
@@ -162,5 +173,11 @@ if __name__ == "__main__":
                  # print cursor
         pool.close()
         pool.join()
-        
-       
+        # p=0
+
+        for proc in results:
+            for key, val in proc.get().iteritems():
+               # print name
+               # todays_date = str(datetime.now())
+               write.writerow([key, val])
+               # scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(name)})
