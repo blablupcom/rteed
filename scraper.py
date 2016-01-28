@@ -181,4 +181,5 @@ if __name__ == "__main__":
             #   write.writerow([key, val])
                
                scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(key), "val": unicode(val)})
-        end_time = st_time-time.time()
+    end_time = st_time-time.time()
+    print end_time
