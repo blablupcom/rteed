@@ -139,13 +139,13 @@ if __name__ == "__main__":
     start_time = time.time()
     filesize = os.path.getsize(response[0])
     # print filesize
-    split_size = 6
+    split_size = 4
 
     # result = processfile(response[0])
     # print result
     # print filesize, split_size
     if filesize > split_size:
-        pool = mp.Pool(7)
+        pool = mp.Pool(4)
         cursor = 0
         results = []
 
