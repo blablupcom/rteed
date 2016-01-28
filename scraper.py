@@ -127,8 +127,7 @@ def processfile(filename, lines, start=0, stop=0):
 
 
 if __name__ == "__main__":
- with open('discount.csv', 'w') as f:
-    write = csv.writer(f)
+    st_time = time.time()
     directoryUrl = "http://www.cqc.org.uk/content/how-get-and-re-use-cqc-information-and-data#directory"
     soup = connect(directoryUrl)
     block = soup.find('div',{'id':'directory'})
@@ -180,4 +179,6 @@ if __name__ == "__main__":
                # print name
                todays_date = str(datetime.now())
             #   write.writerow([key, val])
+               
                scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(key), "val": unicode(val)})
+        end_time = st_time-time.time()
