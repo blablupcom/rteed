@@ -57,10 +57,10 @@ def processfile(filename, lines, start=0, stop=0):
             # print len(csv_reader)
             for row in list(csv_reader)[start:stop]:
                 # print row
-                if 'http' not in row[12]:
-                    continue
-                location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk')
-                name = row[0]
+                # if 'http' not in row[12]:
+                #     continue
+                location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk').strip()
+                name = row[0].strip()
                 # add3 = row[10]
                 # report_soup = connect(location_url)
                 # report_date = ''
@@ -144,44 +144,44 @@ if __name__ == "__main__":
     # result = processfile(response[0])
     # print result
     # print filesize, split_size
-    if filesize > split_size:
-        pool = mp.Pool(4)
-        cursor = 0
-        results = []
+    # if filesize > split_size:
+    pool = mp.Pool(4)
+    cursor = 0
+    results = []
 
-        with open(response[0], "r") as fh:
-             lines = len(fh.readlines())
-             size = lines/split_size
-             print size
-        #      spamreader = csv.reader(fh, delimiter=',')
-             for chunk in xrange(split_size):
+    with open(response[0], "r") as fh:
+         lines = len(fh.readlines())
+         size = lines/split_size
+         print size
+    #      spamreader = csv.reader(fh, delimiter=',')
+         for chunk in xrange(split_size):
 
-                 # if cursor + split_size > filesize:
-                 #     end = filesize
-                 # else:
-                 end = cursor + size
-        #
-        #          fh.seek(end)
-        #          fh.readline()
-        #          end = fh.tell()
+             # if cursor + split_size > filesize:
+             #     end = filesize
+             # else:
+             end = cursor + size
+    #
+    #          fh.seek(end)
+    #          fh.readline()
+    #          end = fh.tell()
 
-                 proc = pool.apply_async(processfile, args=[response[0], lines, cursor, end])
-                 results.append(proc)
-                 # for p in proc.get():
-                 #     print(p)
-                 cursor = end
-                 # print cursor
-        pool.close()
-        pool.join()
-        # p=0
+             proc = pool.apply_async(processfile, args=[response[0], lines, cursor, end])
+             results.append(proc)
+             # for p in proc.get():
+             #     print(p)
+             cursor = end
+             # print cursor
+    pool.close()
+    pool.join()
+    # p=0
 
-        for proc in results:
-            for key, val in proc.get().iteritems():
-               # print name
-               todays_date = str(datetime.now())
-            #   write.writerow([key, val])
-               
-               scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(key), "val": unicode(val)})
+    for proc in results:
+        for key, val in proc.get().iteritems():
+           # print name
+           todays_date = str(datetime.now())
+        #   write.writerow([key, val])
+           
+           scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(key), "val": unicode(val)})
     end_time = str(datetime.now())
     print st_time
     print end_time
