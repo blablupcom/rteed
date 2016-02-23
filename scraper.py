@@ -54,6 +54,7 @@ def processfile(filename, lines, start=0, stop=0):
             results = {}
 
             # return list(csv_reader)[start:stop]
+            len(csv_reader)
             for row in list(csv_reader)[start:stop]:
                 # print row
                 if 'http' not in row[12]:
@@ -61,14 +62,14 @@ def processfile(filename, lines, start=0, stop=0):
                 location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk')
                 name = row[0]
                 # add3 = row[10]
-                report_soup = connect(location_url)
-                report_date = ''
-                try:
-                    report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
-                except:
-                    pass
+                # report_soup = connect(location_url)
+                # report_date = ''
+                # try:
+                #     report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
+                # except:
+                #     pass
                 print name
-                results[name]= report_date
+                results[name]= name
             return results
                 # report_soup = connect(location_url)
                 # latest_report_url = location_url+'/reports'
