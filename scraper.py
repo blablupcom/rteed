@@ -50,26 +50,29 @@ def processfile(filename, lines, start=0, stop=0):
     else:
         with open(filename, "rb") as fh:
             csv_reader = csv.reader(fh, delimiter=',')
+            next(csv_reader)
+            next(csv_reader)
+            next(csv_reader)
+            next(csv_reader)
+            next(csv_reader)
             print start, stop, lines
             results = {}
-
-            # return list(csv_reader)[start:stop]
-            # print len(csv_reader)
             for row in list(csv_reader)[start:stop]:
-                # print row
-                # if 'http' not in row[12]:
-                #     continue
                 location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk').strip()
                 name = row[0].strip()
-                add3 = row[10]
-                # report_soup = connect(location_url)
-                # report_date = ''
-                # try:
-                #     report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
-                # except:
-                #     pass
+                add1 = ' '.join(row[2].split(',')[:-1])
+
+                # add3 = row[10]
+                report_soup = connect(location_url)
+                report_date = ''
+                try:
+                    report_date = report_soup.find('div', 'overview-inner latest-report').find('h3').text.strip()
+                except:
+                    pass
+                l = [location_url, name, add1, report_date]
                 print name
-                results[location_url]= name, add3
+                results.setdefault(location_url,[]).append(l)
+                # results['location_url'] = location_url, name
             return results
                 # report_soup = connect(location_url)
                 # latest_report_url = location_url+'/reports'
@@ -138,13 +141,7 @@ if __name__ == "__main__":
     response = urllib.urlretrieve(csvUrl)
     start_time = time.time()
     filesize = os.path.getsize(response[0])
-    # print filesize
     split_size = 4
-
-    # result = processfile(response[0])
-    # print result
-    # print filesize, split_size
-    # if filesize > split_size:
     pool = mp.Pool(4)
     cursor = 0
     results = []
@@ -152,37 +149,21 @@ if __name__ == "__main__":
     with open(response[0], "rb") as fh:
          lines = len(fh.readlines())
          size = lines/split_size
-         print size
-    #      spamreader = csv.reader(fh, delimiter=',')
          for chunk in xrange(split_size):
-
-             # if cursor + split_size > filesize:
-             #     end = filesize
-             # else:
              end = cursor + size
-    #
-    #          fh.seek(end)
-    #          fh.readline()
-    #          end = fh.tell()
-
              proc = pool.apply_async(processfile, args=[response[0], lines, cursor, end])
              results.append(proc)
-             # for p in proc.get():
-             #     print(p)
              cursor = end
-             # print cursor
+
     pool.close()
     pool.join()
-    p=0
-
     for proc in results:
         for key, val in proc.get().iteritems():
-           # print name
+           print key, val
            todays_date = str(datetime.now())
-        #   write.writerow([key, val])
-           d = p
-           scraperwiki.sqlite.save(unique_keys=['d'], data={"d": d, "name": unicode(key), "val": unicode(val)})
-           p+=1
+           for v in val:
+               scraperwiki.sqlite.save(unique_keys=['location_url'], data={"name": unicode(v[1]), "location_url": unicode(v[0]), "add1": unicode(v[2]), "report_date": unicode(v[3])})
+
     end_time = str(datetime.now())
     print st_time
     print end_time
