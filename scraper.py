@@ -54,7 +54,7 @@ def processfile(filename, lines, start=0, stop=0):
             results = {}
 
             # return list(csv_reader)[start:stop]
-            len(csv_reader)
+            print len(csv_reader)
             for row in list(csv_reader)[start:stop]:
                 # print row
                 if 'http' not in row[12]:
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
         with open(response[0], "r") as fh:
              lines = len(fh.readlines())
-             size = float(lines)/split_size
+             size = lines/split_size
              print size
         #      spamreader = csv.reader(fh, delimiter=',')
              for chunk in xrange(split_size):
