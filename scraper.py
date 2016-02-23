@@ -54,7 +54,7 @@ def processfile(filename, lines, start=0, stop=0):
             results = {}
 
             # return list(csv_reader)[start:stop]
-            print len(csv_reader)
+            # print len(csv_reader)
             for row in list(csv_reader)[start:stop]:
                 # print row
                 if 'http' not in row[12]:
