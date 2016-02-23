@@ -48,7 +48,7 @@ def processfile(filename, lines, start=0, stop=0):
                 postal_code = row[3]
                 print name
     else:
-        with open(filename, "r") as fh:
+        with open(filename, "rb") as fh:
             csv_reader = csv.reader(fh, delimiter=',')
             print start, stop, lines
             results = {}
@@ -61,7 +61,7 @@ def processfile(filename, lines, start=0, stop=0):
                 #     continue
                 location_url = row[12].replace('https://admin.cqc.org.uk', 'http://www.cqc.org.uk').strip()
                 name = row[0].strip()
-                # add3 = row[10]
+                add3 = row[10]
                 # report_soup = connect(location_url)
                 # report_date = ''
                 # try:
@@ -69,7 +69,7 @@ def processfile(filename, lines, start=0, stop=0):
                 # except:
                 #     pass
                 print name
-                results[name]= name
+                results[location_url]= name, add3
             return results
                 # report_soup = connect(location_url)
                 # latest_report_url = location_url+'/reports'
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     cursor = 0
     results = []
 
-    with open(response[0], "r") as fh:
+    with open(response[0], "rb") as fh:
          lines = len(fh.readlines())
          size = lines/split_size
          print size
@@ -173,15 +173,16 @@ if __name__ == "__main__":
              # print cursor
     pool.close()
     pool.join()
-    # p=0
+    p=0
 
     for proc in results:
         for key, val in proc.get().iteritems():
            # print name
            todays_date = str(datetime.now())
         #   write.writerow([key, val])
-           
-           scraperwiki.sqlite.save(unique_keys=['d'], data={"d": todays_date, "name": unicode(key), "val": unicode(val)})
+           d = p
+           scraperwiki.sqlite.save(unique_keys=['d'], data={"d": d, "name": unicode(key), "val": unicode(val)})
+           p+=1
     end_time = str(datetime.now())
     print st_time
     print end_time
