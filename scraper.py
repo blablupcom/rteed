@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
         with open(response[0], "r") as fh:
              lines = len(fh.readlines())
-             size = lines/split_size
+             size = float(lines)/split_size
              print size
         #      spamreader = csv.reader(fh, delimiter=',')
              for chunk in xrange(split_size):
